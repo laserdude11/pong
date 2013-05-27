@@ -31,6 +31,11 @@ SDL_Surface* screen;
 
 int screensize[] = {800, 600};
 
+void declarewin(int player){
+    // TODO: Add a dialog saying that the player won
+    is_running = false;    
+}
+
 void score(int player)
 {
     playerscores[player] = playerscores[player] + 1;
