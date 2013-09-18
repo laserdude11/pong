@@ -1,127 +1,103 @@
+// Pong implementation.
+
 #include <stdlib.h>
 #include <stdbool.h>
 #include <SDL/SDL.h>
-
-// ** Declarations.
-
-// * Definitions.
-#define PLAYER1 0
-#define PLAYER2 1
-#define MAXSCORE 10
-#define LENGTH 20
-#define PADDLE1X 
-#define PADDLE2X
-
+#include "dbg.h"
+#include "game.h"
+#include "ball.h"
+#include "paddle.h"
+#include "court.h"
 
 // * Game-wide structures.
-bool is_running;
-
-struct ball {
-    int x;
-    int y;
-    int xspeed;
-    int yspeed;
-} Ball;
-
-struct paddle {
-    int y;
-    //int length;
-} p1, p2;
 
 int playerscores[] = {0, 0};
 
-SDL_Surface* screen;
+unsigned short screensize[] = {800, 600};
 
-int screensize[] = {800, 600};
+// Colors.
+typedef Uint32 Color;
 
-// ** Function Declarations.
-void declare_win(int player);
-void loop();
-void reset_ball();
-void reset_paddle(struct paddle* p);
-void score(int player);
-void setup_game();
-void update_ball();
-void update_paddle();
+Color white;
 
-// Declare a winner of the game.
-void declare_win(int player){
-    // TODO: Add a dialog saying that the player won
-    is_running = false;    
-}
-
-void score(int player)
+void update(Court* c, Paddle* p1, Paddle* p2, Ball* b)
 {
-    playerscores[player] = playerscores[player] + 1;
-    if (playerscores[player] >= MAXSCORE) declarewin(player);
+    Court_update(c);
+    Paddle_update(p1, c);
+    Paddle_update(p2, c);
+    Ball_update(b, c, p1, p2);
 }
 
-void update_ball(){
-    // Check if the ball needs to interact with a paddle or score
-    if (Ball.x >= PADDLE2X){
-        if (Ball.y <= p2.y && Ball.y >= p2.y + LENGTH){
-            Ball.xspeed = -(Ball.xspeed);
-        } else {
-            score(PLAYER1);
-            reset_round();
-            return;
-        }
 
-    } else if (Ball.x <= PADDLE1X){
-        if (ball.y <= p1.y && ball.y >= p1.y + LENGTH){
-            Ball.xspeed = -(Ball.xspeed);
-        } else {
-            score(PLAYER2);
-            reset_round();
-            return;
+void redraw(Court* c, Paddle* p1, Paddle* p2, Ball* b, SDL_Surface* screen){
+    SDL_FillRect(screen, &screen->clip_rect, SDL_MapRGB(screen->format, 0x00, 0x00, 0x00)); 
+    Court_draw(c, screen);
+    Paddle_draw(p1, screen);
+    Paddle_draw(p2, screen);
+    Ball_draw(b, screen);
+    SDL_Flip(screen);
+}
+
+void handle_keydown(int code){
+    switch(code){
+        case SDLK_ESCAPE: {
+            // PAUSE
+            is_running = false;
+            break;
+        }
+        default:
+            break;
+    }
+}
+
+int handle_event(SDL_Event* event){
+    switch(event->type){
+        case SDL_KEYDOWN: {
+            handle_keydown(event->key.keysym.sym);
+            break;
+        }
+        case SDL_QUIT:
+            is_running = false;
+            break;
+        default: {
+            fprintf(stderr, "Warning: action not handled.");
+            break;
         }
     }
-    // bounce off of the walls if it connects with the top or bottom
-    if (Ball.y >= TOP || Ball.y <= BOTTOM){
-        Ball.yspeed = -(Ball.yspeed);
-    }
-    Ball.x += Ball.xspeed;
-    Ball.y += Ball.yspeed;
 }
 
-
-void reset_ball(){
-    Ball.x = 300;
-    Ball.y = 400;
-    Ball.xspeed = 1;
-    Ball.yspeed = 1; 
-}
-
-void reset_paddle(struct paddle* p){
-    p->y = 290;
-}
-
-void update_paddle(){
+void showStartMenu(){
     
 }
 
-void setupGame()
+void loop(Court* c, Paddle* p1, Paddle* p2, Ball* b, SDL_Surface* screen)
 {
-     screen = SDL_SetVideoMode(screensize[0], screensize[1], 32, SDL_SWSURFACE);
-     reset_paddle(&p1);
-     reset_paddle(&p2);
-     reset_ball();
-}
-
-void loop()
-{
+    showStartMenu();
+    SDL_Event event;
     while(is_running){
-        
-        update_ball(Ball);
-        redraw();
+        while (SDL_PollEvent(&event)){
+            handle_event(&event);
+        }
+        update(c, p1, p2, b);
+        redraw(c, p1, p2, b, screen);
     }
 }
 
 int main(int argc, char* argv[]){
+    
+    SDL_Surface* screen = NULL;
     is_running = true;
     SDL_Init(SDL_INIT_VIDEO);
     atexit(SDL_Quit);
-    setupGame();
-    loop();
+    Court* c = Court_new();
+    Paddle* p1 = Paddle_new(0);
+    Paddle* p2 = Paddle_new(1); 
+    Ball *b = Ball_new();
+    screen = SDL_SetVideoMode(screensize[0], screensize[1], 32, SDL_SWSURFACE);
+    loop(c, p1, p2, b, screen);
+    Court_free(c);
+    Paddle_free(p1);
+    Paddle_free(p2);
+    Ball_free(b);
     return 0;
 }
